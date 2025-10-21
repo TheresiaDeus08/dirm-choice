@@ -1,6 +1,8 @@
 import React from 'react';
 import './Header.css';
 import { signOut } from 'firebase/auth';
+import dirmLogo from '../../assets/dirm_group.jpg'; // adjust path if needed
+
 import { auth } from '../../firebase/config';
 
 function Header({ userName }) {
@@ -31,7 +33,11 @@ function Header({ userName }) {
 
   return (
     <header className="dashboard-header">
-      <div className="logo">Dirm Choice</div>
+      <div className="logo-section">
+  <img src={dirmLogo} alt="Dirm Choice Logo" className="logo-img" />
+  <span className="logo-text">Dirm Choice</span>
+</div>
+
       <div className="user-info">
         <span>Welcome, {getFirstName(userName)}</span>
         <div className="avatar-placeholder">

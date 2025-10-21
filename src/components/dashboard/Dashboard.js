@@ -10,11 +10,19 @@ import pilau from '../../assets/pilau.webp';
 import chips from '../../assets/chips.webp';
 import soda from '../../assets/soda.webp';
 import ugaliMeat from '../../assets/ugali_meat.webp';
+import ugaliChicken from '../../assets/ugali_chicken.jpg';
 import ugaliFish from '../../assets/ugali_fish.webp';
+import ugaliUtumbo from '../../assets/ugali_utumbo.webp'
 import riceMeat from '../../assets/rice_meat.webp';
 import riceChicken from '../../assets/rice_chicken.webp';
+import riceUtumbo from '../../assets/rice_utumbo.jpeg';
+import riceDagaa from '../../assets/rice_dagaa.jpg';
+import riceFish from '../../assets/rice_fish.jpg';
 import pilauMeat from '../../assets/pilau_meat.webp';
 import pilauChicken from '../../assets/pilau_chicken.webp';
+import pilauUtumbo from '../../assets/pilau_utumbo.jpg';
+import pilauDagaa from '../../assets/pilau_dagaa.png';
+import pilauFish from '../../assets/pilau_fish.webp';
 import frenchFries from '../../assets/french_fries.webp';
 import friesOmelette from '../../assets/fries_omelette.webp'
 import cola from '../../assets/cola.jpeg'; 
@@ -30,15 +38,24 @@ const coreFoods = [
 const subOptions = {
   Ugali: [
     { name: 'Ugali with meat', image: ugaliMeat },
+    { name: 'Ugali with chicken', image: ugaliChicken},
     { name: 'Ugali with fish', image: ugaliFish },
+    { name: 'Ugali with utumbo', image: ugaliUtumbo},
+    
   ],
   Rice: [
     { name: 'Rice with meat', image: riceMeat },
     { name: 'Rice with chicken', image: riceChicken },
+    { name: 'Rice with utumbo', image: riceUtumbo },
+    { name: 'Rice with dagaa', image: riceDagaa },
+    { name: 'Rice with fish', image: riceFish },
   ],
   Pilau: [
     { name: 'Pilau with meat', image: pilauMeat },
     { name: 'Pilau with chicken', image: pilauChicken },
+    { name: 'Pilau with utumbo', image: pilauUtumbo },
+    { name: 'Pilau with dagaa', image: pilauDagaa},
+    { name: 'Pilau with fish', image: pilauFish},
   ],
   Chips: [
     {name: 'French fries', image: frenchFries },
