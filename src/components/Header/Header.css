@@ -2,65 +2,72 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
-  background-color: #ff6f61; /* vibrant color for header */
+  padding: 15px 25px;
+  background-color: #ff6f61;
   color: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  border-radius: 0 0 12px 12px;
+  font-family: 'Poppins', sans-serif;
 }
 
 .logo {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: bold;
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 15px;
 }
 
-.avatar-placeholder {
-  width: 40px;
-  height: 40px;
+.user-greeting {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-greeting span {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
   background-color: #fff;
   color: #ff6f61;
   font-weight: bold;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
   font-size: 1rem;
-  text-transform: uppercase;
 }
 
-.logout-btn {
-  padding: 0.4rem 0.8rem;
-  background-color: #fff;
-  color: #ff6f61;
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-btn, .logout-btn {
+  padding: 6px 12px;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
+  font-weight: 500;
   cursor: pointer;
-  font-weight: bold;
   transition: all 0.3s ease;
 }
 
-.logout-btn:hover {
-  background-color: #ffe5e0;
-}
-
 .admin-btn {
-  margin-left: 10px;
-  background-color: #444;
+  background-color: #343a40;
   color: #fff;
-  padding: 8px 15px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background-color 0.3s ease;
 }
 
 .admin-btn:hover {
-  background-color: #ff6f61;
+  background-color: #495057;
 }
 .logo-section {
   display: flex;
@@ -79,3 +86,11 @@
   color: #333;
 }
 
+.logout-btn {
+  background-color: #ffc107;
+  color: #333;
+}
+
+.logout-btn:hover {
+  background-color: #e0a800;
+}

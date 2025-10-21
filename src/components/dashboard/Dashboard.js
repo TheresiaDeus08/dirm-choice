@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from '../../firebase/config';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import Header from '../Header/Header';
 import './Dashboard.css';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import ugali from '../../assets/ugali.webp';
 import rice from '../../assets/wali.webp';
@@ -24,8 +28,8 @@ import pilauUtumbo from '../../assets/pilau_utumbo.jpg';
 import pilauDagaa from '../../assets/pilau_dagaa.png';
 import pilauFish from '../../assets/pilau_fish.webp';
 import frenchFries from '../../assets/french_fries.webp';
-import friesOmelette from '../../assets/fries_omelette.webp'
-import cola from '../../assets/cola.jpeg'; 
+import friesOmelette from '../../assets/fries_omelette.webp';
+import cola from '../../assets/cola.jpeg';
 
 const coreFoods = [
   { name: 'Ugali', image: ugali },
@@ -36,6 +40,7 @@ const coreFoods = [
 ];
 
 const subOptions = {
+<<<<<<< HEAD
   Ugali: [
     { name: 'Ugali with meat', image: ugaliMeat },
     { name: 'Ugali with chicken', image: ugaliChicken},
@@ -64,6 +69,13 @@ const subOptions = {
   Soda: [
     { name: 'Cola', image: cola },
   ]
+=======
+  Ugali: [{ name: 'Ugali with meat', image: ugaliMeat }, { name: 'Ugali with fish', image: ugaliFish }],
+  Rice: [{ name: 'Rice with meat', image: riceMeat }, { name: 'Rice with chicken', image: riceChicken }],
+  Pilau: [{ name: 'Pilau with meat', image: pilauMeat }, { name: 'Pilau with chicken', image: pilauChicken }],
+  Chips: [{ name: 'French fries', image: frenchFries }, { name: 'Fries omelette', image: friesOmelette }],
+  Soda: [{ name: 'Cola', image: cola }],
+>>>>>>> fbb90bf78bb71244df89859f36d823297793da8a
 };
 
 function Dashboard() {
@@ -71,198 +83,242 @@ function Dashboard() {
   const [selectedCore, setSelectedCore] = useState('');
   const [selectedFood, setSelectedFood] = useState('');
   const [locked, setLocked] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(0);
   const [orderComplete, setOrderComplete] = useState(false);
   const [loadingFood, setLoadingFood] = useState(null);
-  const [successMessage, setSuccessMessage] = useState('');
   const [lastOrders, setLastOrders] = useState([]);
+  const [stats, setStats] = useState({ totalOrders: 0, pendingOrders: 0, confirmedOrders: 0 });
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Load user info and last order
+  const email = auth.currentUser?.email;
+
+  // Mobile detection
   useEffect(() => {
-    const fetchUser = async () => {
-      const email = auth.currentUser?.email;
-      if (!email) return;
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
-      const firstName = email.split('@')[0];
-      setUserName(firstName.charAt(0).toUpperCase() + firstName.slice(1));
+  useEffect(() => {
+    if (!email) return;
+    const userRef = doc(db, 'users', email);
 
-      const userRef = doc(db, 'users', email);
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        const data = userSnap.data();
+    const unsubscribe = onSnapshot(userRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const firstName = email.split('@')[0];
+        setUserName(firstName.charAt(0).toUpperCase() + firstName.slice(1));
+
         setSelectedFood(data.selectedFood || '');
         const core = coreFoods.find(c => data.selectedFood?.startsWith(c.name));
         if (core) setSelectedCore(core.name);
 
-        // Track order time and lock
-        if (data.selectionTime) {
-          const selectedTime = new Date(data.selectionTime);
-          const now = new Date();
-          const diff = (now - selectedTime) / 1000;
-          if (diff >= 900) {
-            setLocked(true);
-            setTimeLeft(0);
-            setOrderComplete(true);
-          } else {
-            setTimeLeft(900 - diff);
-            setOrderComplete(true);
-          }
-        }
+        setOrderComplete(!!data.selectedFood);
+        setLocked(data.locked || false);
 
-        // Last orders
-        setLastOrders(data.lastOrders || []);
+        const pending = (data.lastOrders || []).filter(order => !order.confirmed);
+        const confirmed = (data.lastOrders || []).filter(order => order.confirmed);
+        setLastOrders(pending);
+
+        setStats({ 
+          totalOrders: (data.lastOrders || []).length, 
+          pendingOrders: pending.length,
+          confirmedOrders: confirmed.length
+        });
       }
-    };
-    fetchUser();
-  }, []);
+    });
 
-  // Countdown timer
-  useEffect(() => {
-    if (!timeLeft || locked) return;
-    const interval = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          setLocked(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [timeLeft, locked]);
+    return () => unsubscribe();
+  }, [email]);
+
+  const isAfterCutoff = () => {
+    const now = new Date();
+    const cutoff = new Date();
+    cutoff.setHours(11, 0, 0, 0);
+    return now > cutoff;
+  };
 
   const handlePlaceOrder = async (food) => {
-    if (locked || loadingFood) return;
-    setLoadingFood(food.name);
-
+    if (!email) return;
+    if (isAfterCutoff() && selectedCore !== 'Soda') {
+      toast.warn('Food orders are closed after 11:00 AM.', {
+        position: isMobile ? "top-center" : "top-right"
+      });
+      return;
+    }
+    if (orderComplete && selectedCore !== 'Soda') {
+      toast.warn('You have already placed your food order.', {
+        position: isMobile ? "top-center" : "top-right"
+      });
+      return;
+    }
     try {
-      const email = auth.currentUser?.email;
-      if (!email) return;
-
+      setLoadingFood(food.name);
       const now = new Date();
+      const userRef = doc(db, 'users', email);
+      const newOrder = { name: food.name, time: now.toISOString(), confirmed: false };
 
-      // Update user document
-      await setDoc(
-        doc(db, 'users', email),
-        {
-          selectedFood: food.name,
-          selectionTime: now.toISOString(),
-          lastOrders: [{ name: food.name, time: now.toISOString() }, ...lastOrders].slice(0, 5),
-        },
-        { merge: true }
-      );
+      await setDoc(userRef, {
+        selectedFood: food.name,
+        orderDate: now.toDateString(),
+        locked: selectedCore !== 'Soda',
+        lastOrders: [newOrder, ...lastOrders].slice(0, 10),
+      }, { merge: true });
 
-      // Update UI
       setSelectedFood(food.name);
       setOrderComplete(true);
-      setLocked(false);
-      setTimeLeft(900);
-      setLastOrders([{ name: food.name, time: now.toISOString() }, ...lastOrders].slice(0, 5));
-
-      setSuccessMessage(`✅ Your order for "${food.name}" has been placed successfully!`);
-      setTimeout(() => setSuccessMessage(''), 4000);
-    } catch (error) {
-      console.error('Error placing order:', error);
+      setLocked(selectedCore !== 'Soda');
+      toast.success(`Order "${food.name}" placed successfully!`, {
+        position: isMobile ? "top-center" : "top-right"
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to place order.', {
+        position: isMobile ? "top-center" : "top-right"
+      });
     } finally {
       setLoadingFood(null);
     }
   };
 
   const handleResetOrder = async () => {
-    const email = auth.currentUser?.email;
     if (!email) return;
-
-    await setDoc(
-      doc(db, 'users', email),
-      { selectedFood: '', selectionTime: new Date().toISOString() },
-      { merge: true }
-    );
-
+    const userRef = doc(db, 'users', email);
+    await setDoc(userRef, { selectedFood: '', locked: false }, { merge: true });
     setSelectedCore('');
     setSelectedFood('');
     setOrderComplete(false);
     setLocked(false);
-    setTimeLeft(0);
-  };
-
-  const formatTime = (seconds) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
+    toast.info('You can place a new order.', {
+      position: isMobile ? "top-center" : "top-right"
+    });
   };
 
   return (
     <div className="dashboard-wrapper">
+      <ToastContainer 
+        position={isMobile ? "top-center" : "top-right"} 
+        autoClose={3000} 
+        theme="colored"
+        limit={1}
+      />
+      
       <Header userName={userName} />
 
-      <main className="dashboard-main">
-        {/* Success message */}
-        {successMessage && <div className="success-msg animated">{successMessage}</div>}
+      {/* STATS CARDS - MOBILE PERFECT SINGLE ROW */}
+      <div className="stats-cards">
+        <div className="card total">
+          <h3>Total</h3>
+          <p>{stats.totalOrders}</p>
+        </div>
+        <div className="card pending">
+          <h3>Pending</h3>
+          <p>{stats.pendingOrders}</p>
+        </div>
+        <div className="card confirmed">
+          <h3>Confirmed</h3>
+          <p>{stats.confirmedOrders}</p>
+        </div>
+      </div>
 
-        {/* Greeting */}
-        <section className="greeting-section">
-          <h2>Welcome back, {userName}!</h2>
-          {selectedFood && orderComplete && (
-            <p>Your current order: <strong>{selectedFood}</strong></p>
-          )}
-        </section>
-
-        {/* Food selection */}
-        {!selectedCore ? (
-          <section className="food-grid centered">
-            {coreFoods.map(food => (
-              <div key={food.name} className="food-card animated">
-                <img src={food.image} alt={food.name} />
-                <h3>{food.name}</h3>
-                <button onClick={() => setSelectedCore(food.name)}>View Options</button>
-              </div>
-            ))}
-          </section>
-        ) : (
-          <section className="food-grid centered">
-            {subOptions[selectedCore].map(food => (
-              <div key={food.name} className="food-card animated">
-                <img src={food.image} alt={food.name} />
-                <h3>{food.name}</h3>
-                <button onClick={() => handlePlaceOrder(food)} disabled={loadingFood === food.name}>
-                  {loadingFood === food.name ? '⏳ Placing...' : '🍽️ Place Order'}
-                </button>
-              </div>
-            ))}
-            <button className="back-btn" onClick={() => setSelectedCore('')}>Back</button>
-          </section>
-        )}
-
-        {/* Order confirmation */}
-        {orderComplete && (
-          <section className="order-confirmation">
-            <h3>✅ Current Order: {selectedFood}</h3>
-            {!locked && timeLeft > 0 && <p>Time left to change: {formatTime(timeLeft)}</p>}
-            {locked ? (
-              <div>
-                <p className="locked-text">🔒 Your order is locked</p>
-                <button className="reorder-btn" onClick={handleResetOrder}>🔁 Reorder / Retake Order</button>
-              </div>
-            ) : (
-              <button className="reset-btn" onClick={handleResetOrder}>Cancel Order</button>
-            )}
-          </section>
-        )}
-
-        {/* Last orders */}
-        {lastOrders.length > 0 && (
-          <section className="last-orders">
-            <h3>📜 Last Orders</h3>
-            <ul>
-              {lastOrders.map((order, index) => (
-                <li key={index}>
-                  {order.name} — {new Date(order.time).toLocaleString()}
-                </li>
+      <div className="dashboard-main">
+        {/* Food Selection */}
+        <div className="food-selection">
+          {!selectedCore ? (
+            <div className="food-grid">
+              {coreFoods.map(food => (
+                <div key={food.name} className="food-card">
+                  <img src={food.image} alt={food.name} />
+                  <h3>{food.name}</h3>
+                  <button onClick={() => setSelectedCore(food.name)}>
+                    View Options
+                  </button>
+                </div>
               ))}
-            </ul>
-          </section>
-        )}
-      </main>
+            </div>
+          ) : (
+            <div className="food-grid">
+              {subOptions[selectedCore].map(food => (
+                <div key={food.name} className="food-card">
+                  <img src={food.image} alt={food.name} />
+                  <h3>{food.name}</h3>
+                  <button
+                    onClick={() => handlePlaceOrder(food)}
+                    disabled={loadingFood === food.name || (orderComplete && selectedCore !== 'Soda')}
+                  >
+                    {loadingFood === food.name ? (
+                      <>
+                        <AccessTimeIcon style={{ fontSize: '16px' }} />
+                        Placing...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircleOutlineIcon style={{ fontSize: '16px' }} />
+                        Place Order
+                      </>
+                    )}
+                  </button>
+                </div>
+              ))}
+              <button className="back-btn" onClick={() => setSelectedCore('')}>
+                ← Back
+              </button>
+            </div>
+          )}
+
+          {/* Current Order */}
+          {orderComplete && (
+            <div className="current-order">
+              <h3>Current Order: {selectedFood}</h3>
+              {locked ? (
+                <p className="locked-text">
+                  <AccessTimeIcon style={{ fontSize: '18px' }} /> 
+                  Food order locked
+                </p>
+              ) : (
+                <button onClick={handleResetOrder}>Cancel Order</button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Placed Orders Table */}
+        <div className="last-orders-table-wrapper">
+          <h3>Last Pending Orders</h3>
+          {lastOrders.length === 0 ? (
+            <div className="no-orders">
+              <p>No pending orders</p>
+            </div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Food</th>
+                  <th>Time</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lastOrders.map((order, idx) => (
+                  <tr key={idx}>
+                    <td>{idx + 1}</td>
+                    <td>{order.name}</td>
+                    <td>{new Date(order.time).toLocaleString()}</td>
+                    <td>
+                      {order.confirmed ? (
+                        <CheckCircleOutlineIcon style={{ color: '#10b981' }} />
+                      ) : (
+                        <AccessTimeIcon style={{ color: '#f59e0b' }} />
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
